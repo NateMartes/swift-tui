@@ -1,0 +1,11 @@
+# Binaries
+/bin/
+# Go workspace
+vendor/
+# IDEs
+.vscode/
+.idea/
+# Go build artifacts
+*.exe
+*.test
+*.out
