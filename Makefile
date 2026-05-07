@@ -1,10 +1,10 @@
 .PHONY: build run clean
 
 build:
-	go build -o bin/go-swift-tui ./cmd
+	go build -o bin/swift-tui ./cmd
 
 run: build
-	./bin/go-swift-tui
+	./bin/swift-tui
 
 clean:
 	rm -rf bin

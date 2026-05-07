@@ -1,4 +1,4 @@
-# go-swift-tui
+# swift-tui
 
 A TUI application for OpenStack Swift.
 
