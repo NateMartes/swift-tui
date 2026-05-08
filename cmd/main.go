@@ -1,39 +1,33 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"github.com/NateMartes/go-swift-tui/internal/swift"
+	swiftSdk "github.com/ncw/swift/v2"
+	swift "github.com/NateMartes/go-swift-tui/internal/swift"
+	"github.com/NateMartes/go-swift-tui/internal/ui"
+	"github.com/NateMartes/go-swift-tui/internal/eventloop"
 	"github.com/NateMartes/go-swift-tui/pkg/errors"
 	"github.com/NateMartes/go-swift-tui/pkg/util"
 )
 
-// Get arguments for tempauth login as
-// hostname, port, username, password, use_https
-func GetTempAuthArgs() (string, int, string, string, bool) {
-	username, err := util.UsernameVal()
-	if util.UsernameSupplied() && err != nil {
-		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
-	}
-	password, err := util.PasswordVal()
-	if util.PasswordSupplied() && err != nil {
-		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
-	}
-	swiftHostname, err := util.SwiftHostnameVal()
-	if util.SwiftHostnameSupplied() && err != nil {
-		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
-	}
-	swiftPort, err := util.SwiftPortVal()
-	if util.SwiftPortSupplied() && err != nil {
-		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
-	}
-	useHTTPS, err := util.NoHTTPSVal()
-	if util.NoHTTPSSupplied() && err != nil {
+
+func SetClient(client *swiftSdk.Connection) {
+	
+	// use clouds.yaml file if supplied
+	cloudsFile, err := util.CloudsFileVal()
+	if util.CloudsFileSupplied() && err != nil {
 		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
 	}
 
-	return swiftHostname, swiftPort, username, password, useHTTPS
+	// default to tempauth if no clouds.yaml file supplied
+	if util.CloudsFileSupplied() {
+		util.LogDebug("Using clouds file auth")
+		client = swift.SetClientFromCloudsFile(cloudsFile)
+	} else {
+		util.LogDebug("Using Swift tempauth middleware")
+		client = swift.SetClientFromTempauth()
+	}
 }
 
 func main() {
@@ -41,7 +35,7 @@ func main() {
 	util.SetupLogger()
 	util.ParseArgs()
 
-	// Get debug and help arguments
+	// Get help argument if any
 	val, err := util.HelpVal()
 	if util.HelpSupplied() && err != nil {
 		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
@@ -51,6 +45,7 @@ func main() {
 		os.Exit(errors.SUCCESS)
 	}
 
+	// Get debug argument if any
 	val, err = util.DebugVal()
 	if util.DebugSupplied() && err != nil {
 		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
@@ -59,13 +54,16 @@ func main() {
 		util.SetDebugLogging(true)
 	}
 
-	// use tempauth if supplied
-	usingTempAuth, err := util.TempAuthVal()
-	if util.TempAuthSupplied() && err != nil {
-		util.LogFatal(err.Error(), errors.ARGUMENT_ERROR)
-	}
-	if usingTempAuth {
-		hostname, port, username, password, useHttps := GetTempAuthArgs()
-		swift.GetTempauthClient(context.Background(), hostname, port, username, password, useHttps)
+	var client *swiftSdk.Connection
+	SetClient(client)
+
+	app := ui.GetMainTUI()
+	eventloop.SetupEventLoop(client, app)
+	err = app.Run()
+	if err != nil {
+		util.LogFatal(
+			fmt.Sprintf("failed to start main TUI: %v", err), 
+			errors.TUI_ERROR,
+		)
 	}
 }

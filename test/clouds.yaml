@@ -1,0 +1,62 @@
+clouds:
+  production:
+    auth_type: password
+    auth:
+      auth_url: https://keystone.example.com:5000/v3
+      username: myuser
+      password: mypassword
+      project_name: myproject
+      user_domain_name: Default
+      project_domain_name: Default
+    identity_api_version: 3
+    region_name: RegionOne
+    interface: public
+
+  production-appcred:
+    auth_type: v3applicationcredential
+    auth:
+      auth_url: https://keystone.example.com:5000/v3
+      application_credential_id: abc123def456
+      application_credential_secret: supersecret
+    identity_api_version: 3
+    region_name: RegionOne
+
+  staging:
+    auth_type: v2password
+    auth:
+      auth_url: https://keystone.staging.example.com:5000/v2.0
+      username: myuser
+      password: mypassword
+      tenant_name: mytenant
+    identity_api_version: 2
+    region_name: RegionOne
+
+  devcluster:
+    auth:
+      auth_url: http://localhost:8080/auth/v1.0
+      username: test:tester
+      password: testing
+
+  us-east:
+    auth_type: password
+    auth:
+      auth_url: https://keystone.example.com:5000/v3
+      username: myuser
+      password: mypassword
+      project_name: myproject
+      user_domain_name: Default
+      project_domain_name: Default
+    identity_api_version: 3
+    region_name: US-East
+
+  us-west:
+    auth_type: password
+    auth:
+      auth_url: https://keystone.example.com:5000/v3
+      username: myuser
+      password: mypassword
+      project_name: myproject
+      user_domain_name: Default
+      project_domain_name: Default
+    identity_api_version: 3
+    region_name: US-West

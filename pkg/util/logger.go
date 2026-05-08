@@ -92,6 +92,11 @@ func LogWarning(message string) {
 	slog.Log(context.TODO(), slog.LevelWarn, message);
 }
 
+// Log writes to the default logger with ERROR, should be called after SetupLogger()
+func LogError(message string) {
+	slog.Log(context.TODO(), slog.LevelError, message);
+}
+
 // Logs to the error log stream in the default logger, exiting with a code aswell
 func LogFatal(message string, exitCode int) {
 	slog.Log(context.TODO(), slog.LevelError, message);

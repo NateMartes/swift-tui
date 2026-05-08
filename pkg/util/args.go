@@ -19,7 +19,7 @@ func UsageMsg() string {
             flagSummary += fmt.Sprintf(" [-%s|--%s <%s>]\n", f.Shorthand, f.Name, f.Name)
         }
     })
-    fmt.Fprintf(&buf, "usage: %s\n%s\n", os.Args[0], flagSummary)
+    fmt.Fprintf(&buf, "\nusage: %s\n%s\n", os.Args[0], flagSummary)
     fmt.Fprintf(&buf, "A Terminal User Interface (TUI) for OpenStack Swift clusters.\n\n")
     fmt.Fprintf(&buf, "Arguments:\n")
     pflag.PrintDefaults()
@@ -33,11 +33,12 @@ func ParseArgs() {
 	// Args
 	pflag.BoolP("debug", "d", false, "Turn on debug messaging")
 	pflag.BoolP("help", "h", false, "Display help message")
-	pflag.BoolP("temp-auth", "t", false, "Signal to use the OpenStack Swift tempauth middleware for login")
-	pflag.StringP("username", "u", "", "The username to log in with to OpenStack Swift")
-	pflag.StringP("password", "x", "", "The password to log in with to OpenStack Swift")
-	pflag.IntP("swift-port", "p", 8080, "The port to use to connect to OpenStack Swift, default is 8080")
-	pflag.StringP("swift-hostname", "s", "localhost", "The hostname to use to connect to OpenStack Swift, default is localhost")
+	pflag.StringP("clouds-file-path", "c", "", "Use an OpenStackClient (aka OSC) clouds.yaml file to login to OpenStack Swift")
+	pflag.StringP("cloud-name", "n", "", "Cloud to use in the clouds.yaml file to connect to OpenStack Swift")
+	pflag.StringP("username", "u", "", "The username to log in with to OpenStack Swift's tempauth middleware")
+	pflag.StringP("api-key", "a", "", "The api-key/password to log in with to OpenStack Swift's tempauth middleware")
+	pflag.IntP("swift-port", "p", 8080, "The port to use to connect to OpenStack Swift")
+	pflag.StringP("swift-hostname", "s", "localhost", "The hostname to use to connect to OpenStack Swift")
 	pflag.BoolP("no-https", "l", false, "Signal to not use HTTPS for connecting to OpenStack Swift")
 	pflag.Parse()
 }
@@ -54,21 +55,15 @@ func DebugVal() (bool, error) {
     return v, err
 }
 
-// Get the value of the temp-auth argument
-func TempAuthVal() (bool, error) {
-    v, err := pflag.CommandLine.GetBool("temp-auth")
-    return v, err
-}
-
 // Get the value of the username argument
 func UsernameVal() (string, error) {
     v, err := pflag.CommandLine.GetString("username")
     return v, err
 }
 
-// Get the value of the password argument
-func PasswordVal() (string, error) {
-    v, err := pflag.CommandLine.GetString("password")
+// Get the value of the api-key argument
+func ApiKeyVal() (string, error) {
+    v, err := pflag.CommandLine.GetString("api-key")
     return v, err
 }
 
@@ -90,6 +85,28 @@ func NoHTTPSVal() (bool, error) {
     return v, err
 }
 
+// Get the value of the clouds-file-path argument
+func CloudsFileVal() (string, error) {
+    v, err := pflag.CommandLine.GetString("clouds-file-path")
+    return v, err
+}
+
+// Get the value of the cloud-name argument
+func CloudNameVal() (string, error) {
+    v, err := pflag.CommandLine.GetString("cloud-name")
+    return v, err
+}
+
+// Check if the cloud-name argument was supplied
+func CloudNameSupplied() bool {
+	return pflag.CommandLine.Changed("cloud-name")
+}
+
+// Check if the clouds-file-path argument was supplied
+func CloudsFileSupplied() bool {
+	return pflag.CommandLine.Changed("clouds-file-path")
+}
+
 // Check if the debug argument was supplied
 func DebugSupplied() bool {
     return pflag.CommandLine.Changed("debug")
@@ -100,19 +117,14 @@ func HelpSupplied() bool {
     return pflag.CommandLine.Changed("help")
 }
 
-// Check if the temp-auth argument was supplied
-func TempAuthSupplied() bool {
-    return pflag.CommandLine.Changed("temp-auth")
-}
-
 // Check if the username argument was supplied
 func UsernameSupplied() bool {
     return pflag.CommandLine.Changed("username")
 }
 
-// Check if the password argument was supplied
-func PasswordSupplied() bool {
-    return pflag.CommandLine.Changed("password")
+// Check if the api-key argument was supplied
+func ApiKeySupplied() bool {
+    return pflag.CommandLine.Changed("api-key")
 }
 
 // Check if the swift-port argument was supplied
