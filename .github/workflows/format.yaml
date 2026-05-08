@@ -1,0 +1,26 @@
+name: Format
+on:
+  push:
+    branches: [main]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install go
+        run: apt install golang-go
+
+      - name: Run formatter
+        run: gofmt -s ./...
+
+      - name: Save changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "clean: format code"
+          git push
