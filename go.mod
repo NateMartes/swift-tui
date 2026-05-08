@@ -1,4 +1,4 @@
-module github.com/NateMartes/go-swift-tui
+module github.com/NateMartes/swift-tui
 
 go 1.25.0
 

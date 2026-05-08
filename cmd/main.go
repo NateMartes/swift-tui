@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	swiftSdk "github.com/ncw/swift/v2"
-	swift "github.com/NateMartes/go-swift-tui/internal/swift"
-	"github.com/NateMartes/go-swift-tui/internal/ui"
-	"github.com/NateMartes/go-swift-tui/internal/eventloop"
-	"github.com/NateMartes/go-swift-tui/pkg/errors"
-	"github.com/NateMartes/go-swift-tui/pkg/util"
+	swift "github.com/NateMartes/swift-tui/internal/swift"
+	"github.com/NateMartes/swift-tui/internal/ui"
+	"github.com/NateMartes/swift-tui/internal/eventloop"
+	"github.com/NateMartes/swift-tui/pkg/errors"
+	"github.com/NateMartes/swift-tui/pkg/util"
 )
 
 

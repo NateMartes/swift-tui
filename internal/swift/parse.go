@@ -4,8 +4,8 @@ import (
 	"os"
 	"fmt"
 	"gopkg.in/yaml.v3"
-	"github.com/NateMartes/go-swift-tui/pkg/util"
-	"github.com/NateMartes/go-swift-tui/pkg/errors"
+	"github.com/NateMartes/swift-tui/pkg/util"
+	"github.com/NateMartes/swift-tui/pkg/errors"
 )
 
 // Loads a clouds.yaml file into a struct for keystone login

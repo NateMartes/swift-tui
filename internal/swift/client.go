@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"github.com/NateMartes/go-swift-tui/pkg/errors"
-	"github.com/NateMartes/go-swift-tui/pkg/util"
+	"github.com/NateMartes/swift-tui/pkg/errors"
+	"github.com/NateMartes/swift-tui/pkg/util"
 	"github.com/ncw/swift/v2"
 	"strings"
 )
