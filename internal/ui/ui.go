@@ -6,11 +6,11 @@ import (
 
 // Get main box for the TUI application
 func GetMainBox() *tview.Box {
-	
+
 	val := tview.NewBox().
 		SetBorder(true).
 		SetTitle("OpenStack Swift TUI")
-	
+
 	return val
 }
 

@@ -1,29 +1,29 @@
 package swift
 
 import (
-	"os"
 	"fmt"
-	"gopkg.in/yaml.v3"
-	"github.com/NateMartes/swift-tui/pkg/util"
 	"github.com/NateMartes/swift-tui/pkg/errors"
+	"github.com/NateMartes/swift-tui/pkg/util"
+	"gopkg.in/yaml.v3"
+	"os"
 )
 
 // Loads a clouds.yaml file into a struct for keystone login
 func LoadCloudsYAML(path string) (*CloudsYAML, error) {
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read clouds.yaml: %w", err)
-    }
-    var clouds CloudsYAML
-    if err := yaml.Unmarshal(data, &clouds); err != nil {
-        return nil, fmt.Errorf("failed to parse clouds.yaml: %w", err)
-    }
-    return &clouds, nil
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read clouds.yaml: %w", err)
+	}
+	var clouds CloudsYAML
+	if err := yaml.Unmarshal(data, &clouds); err != nil {
+		return nil, fmt.Errorf("failed to parse clouds.yaml: %w", err)
+	}
+	return &clouds, nil
 }
 
 // Using an OpenStackClient clouds.yaml file, get a Cloud struct to login to OpenStack Swift with
 func GetCloudFromCloudsFile(filepath string) Cloud {
-	
+
 	util.LogDebug(fmt.Sprintf("Marshaling file %s into clouds.yaml structure", filepath))
 	cloudsYAML, err := LoadCloudsYAML(filepath)
 	if err != nil {
@@ -40,11 +40,11 @@ func GetCloudFromCloudsFile(filepath string) Cloud {
 			errors.ARGUMENT_ERROR,
 		)
 	}
-	
+
 	if len(cloudsYAML.Clouds) == 0 {
 		util.LogFatal(fmt.Sprintf("No clouds found in file %s", filepath), errors.PARSE_ERROR)
 	}
-	
+
 	util.LogDebug(fmt.Sprintf("Using cloud '%s' from %s", cloudName, filepath))
 	output, ok := cloudsYAML.Clouds[cloudName]
 	if !ok {

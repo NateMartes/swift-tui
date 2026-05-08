@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
-	"os"
-	swiftSdk "github.com/ncw/swift/v2"
+	"github.com/NateMartes/swift-tui/internal/eventloop"
 	swift "github.com/NateMartes/swift-tui/internal/swift"
 	"github.com/NateMartes/swift-tui/internal/ui"
-	"github.com/NateMartes/swift-tui/internal/eventloop"
 	"github.com/NateMartes/swift-tui/pkg/errors"
 	"github.com/NateMartes/swift-tui/pkg/util"
+	swiftSdk "github.com/ncw/swift/v2"
+	"os"
 )
 
-
 func SetClient(client *swiftSdk.Connection) {
-	
+
 	// use clouds.yaml file if supplied
 	cloudsFile, err := util.CloudsFileVal()
 	if util.CloudsFileSupplied() && err != nil {
@@ -31,7 +30,7 @@ func SetClient(client *swiftSdk.Connection) {
 }
 
 func main() {
-	
+
 	util.SetupLogger()
 	util.ParseArgs()
 
@@ -62,7 +61,7 @@ func main() {
 	err = app.Run()
 	if err != nil {
 		util.LogFatal(
-			fmt.Sprintf("failed to start main TUI: %v", err), 
+			fmt.Sprintf("failed to start main TUI: %v", err),
 			errors.TUI_ERROR,
 		)
 	}

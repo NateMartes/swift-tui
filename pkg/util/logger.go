@@ -12,16 +12,16 @@ import (
 // cliHandler writes out to a specifc stream, holding a mutex to stop
 // other processes from writing to the stream
 type cliHandler struct {
-    mu       *sync.Mutex
-    out      io.Writer
-    minLevel slog.Level
+	mu       *sync.Mutex
+	out      io.Writer
+	minLevel slog.Level
 }
 
 func (h *cliHandler) Enabled(_ context.Context, level slog.Level) bool {
-    return level >= h.minLevel
+	return level >= h.minLevel
 }
 func (h *cliHandler) WithAttrs(attrs []slog.Attr) slog.Handler { return h }
-func (h *cliHandler) WithGroup(name string) slog.Handler      { return h }
+func (h *cliHandler) WithGroup(name string) slog.Handler       { return h }
 
 // Format logs as [LEVEL] msg
 func (h *cliHandler) Handle(_ context.Context, r slog.Record) error {
@@ -64,9 +64,10 @@ func (h *logStreamHandler) WithGroup(name string) slog.Handler {
 
 var outHandler *cliHandler
 var errHandler *cliHandler
+
 // Inits the logger to be used by the CLI
 func SetupLogger() {
-	
+
 	errHandler = &cliHandler{out: os.Stderr, mu: &sync.Mutex{}, minLevel: slog.LevelWarn}
 	outHandler = &cliHandler{out: os.Stdout, mu: &sync.Mutex{}, minLevel: slog.LevelInfo}
 	logger := slog.New(&logStreamHandler{
@@ -79,27 +80,27 @@ func SetupLogger() {
 
 // Log writes to the default logger with INFO, should be called after SetupLogger()
 func LogInfo(message string) {
-	slog.Log(context.TODO(), slog.LevelInfo, message);
+	slog.Log(context.TODO(), slog.LevelInfo, message)
 }
 
 // Log writes to the default logger with DEBUG, should be called after SetupLogger()
 func LogDebug(message string) {
-	slog.Log(context.TODO(), slog.LevelDebug, message);
+	slog.Log(context.TODO(), slog.LevelDebug, message)
 }
 
 // Log writes to the default logger with WARN, should be called after SetupLogger()
 func LogWarning(message string) {
-	slog.Log(context.TODO(), slog.LevelWarn, message);
+	slog.Log(context.TODO(), slog.LevelWarn, message)
 }
 
 // Log writes to the default logger with ERROR, should be called after SetupLogger()
 func LogError(message string) {
-	slog.Log(context.TODO(), slog.LevelError, message);
+	slog.Log(context.TODO(), slog.LevelError, message)
 }
 
 // Logs to the error log stream in the default logger, exiting with a code aswell
 func LogFatal(message string, exitCode int) {
-	slog.Log(context.TODO(), slog.LevelError, message);
+	slog.Log(context.TODO(), slog.LevelError, message)
 	os.Exit(exitCode)
 }
 
