@@ -15,12 +15,12 @@ jobs:
         run: sudo apt install golang-go
 
       - name: Run formatter
-        run: gofmt -s ./...
+        run: gofmt -s -w .
 
       - name: Save changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "clean: format code"
+          git commit -m "format: format of (${{ github.event.head_commit.message }})S"
           git push
