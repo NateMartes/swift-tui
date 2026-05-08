@@ -1,4 +1,7 @@
 # swift-tui
+[![Go Report Card](https://goreportcard.com/badge/github.com/NateMartes/swift-tui)](https://goreportcard.com/report/github.com/NateMartes/swift-tui)
+[![Last Commit](https://img.shields.io/github/last-commit/NateMartes/swift-tui)](https://github.com/NateMartes/lotlytics/commits)
+[![License](https://img.shields.io/github/license/NateMartes/swift-tui)](LICENSE)
 
 A TUI application for OpenStack Swift. (W.I.P)
 
