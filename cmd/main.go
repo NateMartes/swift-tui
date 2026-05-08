@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	
 	"github.com/NateMartes/swift-tui/internal/eventloop"
 	swift "github.com/NateMartes/swift-tui/internal/swift"
 	"github.com/NateMartes/swift-tui/internal/ui"
