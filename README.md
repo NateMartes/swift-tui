@@ -5,7 +5,7 @@
 
 A TUI application for OpenStack Swift. (W.I.P)
 
-[![Swift TUI](./doc/images/tui.png)
+![Swift TUI](./doc/images/tui.png)
 
 ## Features
 - Viewing Swift cluster resources and polices
