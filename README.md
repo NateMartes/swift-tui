@@ -5,6 +5,8 @@
 
 A TUI application for OpenStack Swift. (W.I.P)
 
+[![Swift TUI](./doc/images/tui.png)
+
 ## Features
 - Viewing Swift cluster resources and polices
 - Connection to Swift cluster using tempauth middleware or a clouds.yaml file
