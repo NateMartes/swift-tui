@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/NateMartes/swift-tui/internal/eventloop"
 	swift "github.com/NateMartes/swift-tui/internal/swift"
 	"github.com/NateMartes/swift-tui/internal/ui"
 	"github.com/NateMartes/swift-tui/pkg/errors"
@@ -12,7 +10,8 @@ import (
 	"os"
 )
 
-func SetClient(client *swiftSdk.Connection) {
+// Sets a pointer to a swift client to some client depending on the arguments provided
+func SetClient() *swiftSdk.Connection{
 
 	// use clouds.yaml file if supplied
 	cloudsFile, err := util.CloudsFileVal()
@@ -23,10 +22,10 @@ func SetClient(client *swiftSdk.Connection) {
 	// default to tempauth if no clouds.yaml file supplied
 	if util.CloudsFileSupplied() {
 		util.LogDebug("Using clouds file auth")
-		client = swift.SetClientFromCloudsFile(cloudsFile)
+		return swift.SetClientFromCloudsFile(cloudsFile)
 	} else {
 		util.LogDebug("Using Swift tempauth middleware")
-		client = swift.SetClientFromTempauth()
+		return swift.SetClientFromTempauth()
 	}
 }
 
@@ -54,11 +53,10 @@ func main() {
 		util.SetDebugLogging(true)
 	}
 
-	var client *swiftSdk.Connection
-	SetClient(client)
+	client := SetClient()
+	util.LogInfo(fmt.Sprintf("%v\n", client))
 
-	app := ui.GetMainTUI()
-	eventloop.SetupEventLoop(client, app)
+	app, _ := ui.GetMainTUI(client)
 	err = app.Run()
 	if err != nil {
 		util.LogFatal(
