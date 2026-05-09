@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 var TEXT_HEADER_COLOR tcell.Color = tcell.ColorLightBlue
@@ -17,12 +17,12 @@ var BORDER_COLOR tcell.Color = tcell.ColorWhite
 
 // Layout holds all TUI panels for reference
 type Layout struct {
-	App            *tview.Application
-	ContainerList  *tview.List
-	ObjectTable    *tview.Table
-	MetadataView   *tview.TextView
-	ClusterStats   *tview.TextView
-	LogView        *tview.TextView
-	StatusBar      *tview.TextView
-	Pages          *tview.Pages
+	App           *tview.Application
+	ContainerList *tview.List
+	ObjectTable   *tview.Table
+	MetadataView  *tview.TextView
+	ClusterStats  *tview.TextView
+	LogView       *tview.TextView
+	StatusBar     *tview.TextView
+	Pages         *tview.Pages
 }

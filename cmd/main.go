@@ -11,7 +11,7 @@ import (
 )
 
 // Sets a pointer to a swift client to some client depending on the arguments provided
-func SetClient() *swiftSdk.Connection{
+func SetClient() *swiftSdk.Connection {
 
 	// use clouds.yaml file if supplied
 	cloudsFile, err := util.CloudsFileVal()

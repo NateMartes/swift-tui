@@ -3,11 +3,9 @@ package ui
 import (
 	"fmt"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	swiftSdk "github.com/ncw/swift/v2"
+	"github.com/rivo/tview"
 )
-
-
 
 // GetMainTUI builds and returns the fully wired TUI application
 func GetMainTUI(client *swiftSdk.Connection) (*tview.Application, *Layout) {
@@ -22,7 +20,7 @@ func EndMainTUI(app *tview.Application) {
 }
 
 func ColorToTag(c tcell.Color) string {
-    return fmt.Sprintf("[#%06x]", c.Hex())
+	return fmt.Sprintf("[#%06x]", c.Hex())
 }
 
 func GetHeader() *tview.TextView {
@@ -52,7 +50,7 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 	connected := true
 	endpointStatus := "Connected"
 	containerCount := 5
-	objectCount := 1400 
+	objectCount := 1400
 	totalClusterSizeGB := 24.3
 
 	headerColorTag := ColorToTag(TEXT_HEADER_COLOR)
@@ -62,23 +60,23 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 	}
 	textColorTag := ColorToTag(TEXT_COLOR)
 	objectSizeTag := ColorToTag(TEXT_ACCENT_COLOR)
-	
+
 	clusterStats = clusterStats.SetText(
-    fmt.Sprintf(
-        "%sEndpoint %s(● %s)%s:%s %s\n%sAccount:%s %s\n%sContainers:%s %d\n%sObjects:%s %s%d   %sTotal Size:%s %s%.1f GB",
-        headerColorTag,
-        statusColorTag, endpointStatus, headerColorTag,
-        textColorTag, client.AuthUrl,
-        headerColorTag, textColorTag,
-        client.UserName,
-        headerColorTag, textColorTag,
-        containerCount,
-        headerColorTag, textColorTag,
-        textColorTag, objectCount,
-        headerColorTag, textColorTag,
-        objectSizeTag, totalClusterSizeGB,
-    ),
-)
+		fmt.Sprintf(
+			"%sEndpoint %s(● %s)%s:%s %s\n%sAccount:%s %s\n%sContainers:%s %d\n%sObjects:%s %s%d   %sTotal Size:%s %s%.1f GB",
+			headerColorTag,
+			statusColorTag, endpointStatus, headerColorTag,
+			textColorTag, client.AuthUrl,
+			headerColorTag, textColorTag,
+			client.UserName,
+			headerColorTag, textColorTag,
+			containerCount,
+			headerColorTag, textColorTag,
+			textColorTag, objectCount,
+			headerColorTag, textColorTag,
+			objectSizeTag, totalClusterSizeGB,
+		),
+	)
 	return clusterStats
 }
 
@@ -113,7 +111,7 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 }
 
 func GetObjectTable() *tview.Table {
-	
+
 	objectTable := tview.NewTable().
 		SetBorders(false).
 		SetSelectable(true, false).
@@ -125,7 +123,7 @@ func GetObjectTable() *tview.Table {
 		SetTitleColor(TEXT_HEADER_COLOR).
 		SetBorder(true).
 		SetBorderColor(BORDER_COLOR)
-	
+
 	objectTable = UpdateObjectTable(nil, objectTable)
 	return objectTable
 }
@@ -140,7 +138,7 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table) *t
 			SetSelectable(false).
 			SetExpansion(1))
 	}
-	
+
 	rows := [][]string{
 		{"README.md", "4.2 KB", "2025-04-12 09:14", "text/markdown"},
 		{"backup-2025-04-01.tar.gz", "1.1 GB", "2025-04-01 02:00", "application/gzip"},
@@ -148,7 +146,7 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table) *t
 		{"logo.png", "58 KB", "2025-02-10 11:22", "image/png"},
 		{"report-q1.pdf", "2.3 MB", "2025-04-05 13:00", "application/pdf"},
 	}
-	
+
 	for r, row := range rows {
 		for col, val := range row {
 			color := TEXT_COLOR
@@ -227,7 +225,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 	header := GetHeader()
 	topBar := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(header, 0, 2, false)
-	
+
 	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(l.ObjectTable, 0, 3, false).
 		AddItem(l.MetadataView, 12, 0, false)
@@ -241,15 +239,15 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 		AddItem(mainContent, 0, 1, true).
 		AddItem(
 			tview.NewFlex().SetDirection(tview.FlexColumn).
-		    AddItem(l.LogView,      0, 6, false).
-		    AddItem(l.ClusterStats, 0, 4, false), 6, 0, false,
+				AddItem(l.LogView, 0, 6, false).
+				AddItem(l.ClusterStats, 0, 4, false), 6, 0, false,
 		).
 		AddItem(l.StatusBar, 1, 0, false)
-	
+
 	l.Pages = tview.NewPages().AddPage("main", root, true, true)
 
 	app = SetupInputHandling(app, l)
-	
+
 	// Update metadata when a container is selected
 	l.ContainerList.SetChangedFunc(func(index int, name, secondary string, shortcut rune) {
 		l.ObjectTable.Clear()
