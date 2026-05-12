@@ -25,6 +25,10 @@ func ColorToTag(c tcell.Color) string {
 	return fmt.Sprintf("[#%06x]", c.Hex())
 }
 
+func BytesToGB(a int64) float64 {
+	return float64(a) / 1_000_000.0
+}
+
 func GetHeader() *tview.TextView {
 	header := tview.NewTextView().
 		SetText("OpenStack Swift TUI").
@@ -69,7 +73,7 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 		endpointStatus = "Connected"
 		containerCount = account.Containers
 		objectCount = account.Objects
-		accountSizeGB = float64(account.BytesUsed) / 1_000_000.0
+		accountSizeGB = BytesToGB(account.BytesUsed)
 	}
 
 	headerColorTag := ColorToTag(TEXT_HEADER_COLOR)
@@ -99,7 +103,7 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 	return clusterStats
 }
 
-func GetContainerList() *tview.List {
+func GetContainerList(client *swiftSdk.Connection) *tview.List {
 	containerList := tview.NewList().
 		ShowSecondaryText(true).
 		SetHighlightFullLine(true).
@@ -111,18 +115,41 @@ func GetContainerList() *tview.List {
 		SetBorder(true).
 		SetBorderColor(BORDER_COLOR)
 
-	containerList = UpdateContainerList(nil, containerList)
+	containerList = UpdateContainerList(client, containerList)
 	return containerList
 }
 
 func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List) *tview.List {
-	containers := []struct{ name, meta string }{
-		{"backup-data", "42 objects · 1.2 GB"},
-		{"static-assets", "318 objects · 4.8 GB"},
-		{"logs-2024", "9 objects · 230 MB"},
-		{"user-uploads", "1024 objects · 18 GB"},
-		{"temp-cache", "7 objects · 50 MB"},
+
+	containerFormatString := "%s objects · %.1f GB"
+	containers := []struct{ name, meta string } {
+		{"No Containers Found", ""},
 	}
+	
+	containersResult, err := client.ContainersAll(context.Background(), nil)
+	if err != nil {
+	  util.LogError(
+	      fmt.Sprintf("Failed to get account info from %s as %s: %s",
+	          client.AuthUrl,
+	          client.UserName,
+	          err.Error(),
+	      ),
+	  )	
+	} else {
+		if len(containersResult) > 0 {
+			containers = []struct{ name, meta string }{}
+			for _, c := range containersResult {
+				containers = append(containers,
+					struct{ name, meta string }{
+						c.Name,
+						fmt.Sprintf(containerFormatString, c.Count, BytesToGB(c.Bytes)),
+					},
+				)
+				util.LogInfo(fmt.Sprintf("%v\n", c))
+			}
+		}
+	}
+
 	for _, c := range containers {
 		containerList.AddItem(c.name, c.meta, 0, nil)
 	}
@@ -235,7 +262,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 
 	l := &Layout{}
 	l.ClusterStats = GetClusterStats(client)
-	l.ContainerList = GetContainerList()
+	l.ContainerList = GetContainerList(client)
 	l.ObjectTable = GetObjectTable()
 	l.MetadataView = GetMetadataView()
 	l.LogView = GetLogView()
