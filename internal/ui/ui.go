@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
-	swiftSdk "github.com/ncw/swift/v2"
 	"github.com/rivo/tview"
+	swiftSdk "github.com/ncw/swift/v2"
+	"github.com/NateMartes/swift-tui/pkg/util"
 )
 
 // GetMainTUI builds and returns the fully wired TUI application
@@ -47,11 +49,28 @@ func GetClusterStats(client *swiftSdk.Connection) *tview.TextView {
 
 func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextView) *tview.TextView {
 
-	connected := true
-	endpointStatus := "Connected"
-	containerCount := 5
-	objectCount := 1400
-	totalClusterSizeGB := 24.3
+	connected := false
+	endpointStatus := "Disconnected"
+	containerCount := int64(0)
+	objectCount := int64(0)
+	accountSizeGB := float64(0.0)
+	
+	account, _, err := client.Account(context.Background())
+	if err != nil {
+	    util.LogError(
+	        fmt.Sprintf("Failed to get account info from %s as %s: %s",
+	            client.AuthUrl,
+	            client.UserName,
+	            err.Error(),
+	        ),
+	    )
+	} else {
+		connected = true
+		endpointStatus = "Connected"
+		containerCount = account.Containers
+		objectCount = account.Objects
+		accountSizeGB = float64(account.BytesUsed) / 1_000_000.0
+	}
 
 	headerColorTag := ColorToTag(TEXT_HEADER_COLOR)
 	statusColorTag := ColorToTag(TEXT_DISCONNECTED_COLOR)
@@ -74,7 +93,7 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 			headerColorTag, textColorTag,
 			textColorTag, objectCount,
 			headerColorTag, textColorTag,
-			objectSizeTag, totalClusterSizeGB,
+			objectSizeTag, accountSizeGB,
 		),
 	)
 	return clusterStats
@@ -208,7 +227,7 @@ func GetStatusBar() *tview.TextView {
 }
 
 func UpdateStatusBar(client *swiftSdk.Connection, statusBar *tview.TextView) *tview.TextView {
-	statusBar = statusBar.SetText(" [yellow]Tab[white] Switch panel  [yellow]↑↓[white] Navigate  [yellow]Enter[white] Select  [yellow]D[white] Delete  [yellow]U[white] Upload  [yellow]Q[white] Quit")
+	statusBar = statusBar.SetText(" [yellow]Tab[white] Switch panel  [yellow]↑↓[white] Navigate [yellow]Q[white] Quit")
 	return statusBar
 }
 
@@ -227,8 +246,8 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 		AddItem(header, 0, 2, false)
 
 	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(l.ObjectTable, 0, 3, false).
-		AddItem(l.MetadataView, 12, 0, false)
+		AddItem(l.ObjectTable, 8, 3, false).
+		AddItem(l.MetadataView, 8, 0, false)
 
 	mainContent := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(l.ContainerList, 30, 0, true).

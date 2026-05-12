@@ -47,6 +47,7 @@ func GetTempAuthArgs() (string, int, string, string, bool) {
 	return swiftHostname, swiftPort, username, password, useHTTPS
 }
 
+// Given a file path, parse it as a clouds.yaml file and return a swift connection from it
 func SetClientFromCloudsFile(filepath string) *swift.Connection {
 
 	cloud := GetCloudFromCloudsFile(filepath)
@@ -74,6 +75,7 @@ func SetClientFromCloudsFile(filepath string) *swift.Connection {
 	return client
 }
 
+// Create a Swift connection using Swift's tempauth middleware, gathering arguments from the command line to do so
 func SetClientFromTempauth() *swift.Connection {
 
 	hostname, port, username, apiKey, useHttps := GetTempAuthArgs()

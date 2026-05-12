@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-// Sets a pointer to a swift client to some client depending on the arguments provided
+// Gets a Swift connection depending on the arguments provided
 func SetClient() *swiftSdk.Connection {
 
 	// use clouds.yaml file if supplied
@@ -54,8 +54,6 @@ func main() {
 	}
 
 	client := SetClient()
-	util.LogInfo(fmt.Sprintf("%v\n", client))
-
 	app, _ := ui.GetMainTUI(client)
 	err = app.Run()
 	if err != nil {
