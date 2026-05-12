@@ -122,19 +122,19 @@ func GetContainerList(client *swiftSdk.Connection) *tview.List {
 func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List) *tview.List {
 
 	containerFormatString := "%s objects · %.1f GB"
-	containers := []struct{ name, meta string } {
+	containers := []struct{ name, meta string }{
 		{"No Containers Found", ""},
 	}
-	
+
 	containersResult, err := client.ContainersAll(context.Background(), nil)
 	if err != nil {
-	  util.LogError(
-	      fmt.Sprintf("Failed to get account info from %s as %s: %s",
-	          client.AuthUrl,
-	          client.UserName,
-	          err.Error(),
-	      ),
-	  )	
+		util.LogError(
+			fmt.Sprintf("Failed to get account info from %s as %s: %s",
+				client.AuthUrl,
+				client.UserName,
+				err.Error(),
+			),
+		)
 	} else {
 		if len(containersResult) > 0 {
 			containers = []struct{ name, meta string }{}
