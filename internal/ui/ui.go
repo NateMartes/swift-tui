@@ -3,11 +3,11 @@ package ui
 import (
 	"context"
 	"fmt"
-	"time"
 	"github.com/NateMartes/swift-tui/pkg/util"
 	"github.com/gdamore/tcell/v2"
 	swiftSdk "github.com/ncw/swift/v2"
 	"github.com/rivo/tview"
+	"time"
 )
 
 // GetMainTUI builds and returns the fully wired TUI application
@@ -42,7 +42,7 @@ func BytesToKB(a int64) float64 {
 	return float64(a) / 1_000.0
 }
 
-// Format bytes into either gigabytes, megabytes, kilobytes. 
+// Format bytes into either gigabytes, megabytes, kilobytes.
 // Returns a string representation of the value that was converted
 func FormatBytes(a int64) (float64, string) {
 	if a >= 1_000_000_000 {
@@ -65,7 +65,7 @@ func GetHeader() *tview.TextView {
 	return header
 }
 
-// Gets the cluster status pane of the TUI using a Swift connection 
+// Gets the cluster status pane of the TUI using a Swift connection
 func GetClusterStats(client *swiftSdk.Connection) *tview.TextView {
 	clusterStats := tview.NewTextView().
 		SetDynamicColors(true)
@@ -78,7 +78,7 @@ func GetClusterStats(client *swiftSdk.Connection) *tview.TextView {
 	return clusterStats
 }
 
-// Updates the cluster status pane using a Swift connection 
+// Updates the cluster status pane using a Swift connection
 func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextView) *tview.TextView {
 
 	connected := false
@@ -154,26 +154,26 @@ func GetContainerList(client *swiftSdk.Connection) (*tview.List, string) {
 func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List) (*tview.List, string) {
 
 	containerFormatString := "%d objects · %.3f %s"
-	containers := []struct{ name, meta string } {
+	containers := []struct{ name, meta string }{
 		{"No Containers Found", ""},
 	}
 	selectedContainer := NO_CONTAINER_SELECTED
-	
+
 	containersResult, err := client.ContainersAll(context.Background(), nil)
 	if err != nil {
-	  util.LogError(
-	      fmt.Sprintf("Failed to get account info from %s as %s: %s",
-	          client.StorageUrl,
-	          client.UserName,
-	          err.Error(),
-	      ),
-	  )	
+		util.LogError(
+			fmt.Sprintf("Failed to get account info from %s as %s: %s",
+				client.StorageUrl,
+				client.UserName,
+				err.Error(),
+			),
+		)
 	} else {
 		if len(containersResult) > 0 {
 
 			// set the first container as the selected container
 			selectedContainer = containersResult[0].Name
-			
+
 			containers = []struct{ name, meta string }{}
 			for _, c := range containersResult {
 				size, sizeFormat := FormatBytes(c.Bytes)
@@ -230,11 +230,11 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 	objects, err := client.ObjectsAll(context.Background(), selectedContainer, nil)
 	if err != nil {
 		util.LogError(
-		    fmt.Sprintf("Failed to get objects %s as %s: %s",
-		        client.StorageUrl,
-		        client.UserName,
-		        err.Error(),
-		    ),
+			fmt.Sprintf("Failed to get objects %s as %s: %s",
+				client.StorageUrl,
+				client.UserName,
+				err.Error(),
+			),
 		)
 		return objectTable, selectedObject
 	}
@@ -246,15 +246,14 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 		rows = append(rows,
 			// order matches with top row
 			[]string{
-				o.Name, 
+				o.Name,
 				fmt.Sprintf("%.3f %s", size, sizeFormat),
-				o.LastModified.Format(time.RFC1123), 
+				o.LastModified.Format(time.RFC1123),
 				o.ContentType,
 			},
 		)
 	}
 
-	
 	for r, row := range rows {
 		for col, val := range row {
 			color := TEXT_COLOR
@@ -338,7 +337,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 
 	var selectedObject string = NO_OBJECT_SELECTED
 	l.ObjectTable, selectedObject = GetObjectTable(client, selectedContainer)
-	
+
 	l.MetadataView = GetMetadataView(client, selectedObject)
 	l.LogView = GetLogView()
 	l.StatusBar = GetStatusBar()
