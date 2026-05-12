@@ -3,10 +3,10 @@ package ui
 import (
 	"context"
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
-	swiftSdk "github.com/ncw/swift/v2"
 	"github.com/NateMartes/swift-tui/pkg/util"
+	"github.com/gdamore/tcell/v2"
+	swiftSdk "github.com/ncw/swift/v2"
+	"github.com/rivo/tview"
 )
 
 // GetMainTUI builds and returns the fully wired TUI application
@@ -54,16 +54,16 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 	containerCount := int64(0)
 	objectCount := int64(0)
 	accountSizeGB := float64(0.0)
-	
+
 	account, _, err := client.Account(context.Background())
 	if err != nil {
-	    util.LogError(
-	        fmt.Sprintf("Failed to get account info from %s as %s: %s",
-	            client.AuthUrl,
-	            client.UserName,
-	            err.Error(),
-	        ),
-	    )
+		util.LogError(
+			fmt.Sprintf("Failed to get account info from %s as %s: %s",
+				client.AuthUrl,
+				client.UserName,
+				err.Error(),
+			),
+		)
 	} else {
 		connected = true
 		endpointStatus = "Connected"
