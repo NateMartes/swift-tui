@@ -26,3 +26,6 @@ type Layout struct {
 	StatusBar     *tview.TextView
 	Pages         *tview.Pages
 }
+
+var NO_CONTAINER_SELECTED string = ""
+var NO_OBJECT_SELECTED string = ""

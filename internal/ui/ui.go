@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"time"
 	"github.com/NateMartes/swift-tui/pkg/util"
 	"github.com/gdamore/tcell/v2"
 	swiftSdk "github.com/ncw/swift/v2"
@@ -21,14 +22,39 @@ func EndMainTUI(app *tview.Application) {
 	app.Stop()
 }
 
+// Convert tcell Color type to hex code. Useful for tview dynamic colors
 func ColorToTag(c tcell.Color) string {
 	return fmt.Sprintf("[#%06x]", c.Hex())
 }
 
+// Convert an integer of bytes to a gigabytes
 func BytesToGB(a int64) float64 {
+	return float64(a) / 1_000_000_000.0
+}
+
+// Convert an integer of bytes to a megabytes
+func BytesToMB(a int64) float64 {
 	return float64(a) / 1_000_000.0
 }
 
+// Convert an integer of bytes to a kilobytes
+func BytesToKB(a int64) float64 {
+	return float64(a) / 1_000.0
+}
+
+// Format bytes into either gigabytes, megabytes, kilobytes. 
+// Returns a string representation of the value that was converted
+func FormatBytes(a int64) (float64, string) {
+	if a >= 1_000_000_000 {
+		return BytesToGB(a), "GB"
+	} else if a >= 1_000_000 {
+		return BytesToGB(a), "MB"
+	} else {
+		return BytesToKB(a), "KB"
+	}
+}
+
+// Gets the header object of the TUI
 func GetHeader() *tview.TextView {
 	header := tview.NewTextView().
 		SetText("OpenStack Swift TUI").
@@ -39,6 +65,7 @@ func GetHeader() *tview.TextView {
 	return header
 }
 
+// Gets the cluster status pane of the TUI using a Swift connection 
 func GetClusterStats(client *swiftSdk.Connection) *tview.TextView {
 	clusterStats := tview.NewTextView().
 		SetDynamicColors(true)
@@ -51,19 +78,22 @@ func GetClusterStats(client *swiftSdk.Connection) *tview.TextView {
 	return clusterStats
 }
 
+// Updates the cluster status pane using a Swift connection 
 func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextView) *tview.TextView {
 
 	connected := false
 	endpointStatus := "Disconnected"
+	storageUrl := "Unknow Storage URL"
 	containerCount := int64(0)
 	objectCount := int64(0)
-	accountSizeGB := float64(0.0)
+	accountSize := float64(0.0)
+	accountSizeFormat := "GB"
 
 	account, _, err := client.Account(context.Background())
 	if err != nil {
 		util.LogError(
 			fmt.Sprintf("Failed to get account info from %s as %s: %s",
-				client.AuthUrl,
+				client.StorageUrl,
 				client.UserName,
 				err.Error(),
 			),
@@ -71,9 +101,10 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 	} else {
 		connected = true
 		endpointStatus = "Connected"
+		storageUrl = client.StorageUrl
 		containerCount = account.Containers
 		objectCount = account.Objects
-		accountSizeGB = BytesToGB(account.BytesUsed)
+		accountSize, accountSizeFormat = FormatBytes(account.BytesUsed)
 	}
 
 	headerColorTag := ColorToTag(TEXT_HEADER_COLOR)
@@ -86,10 +117,10 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 
 	clusterStats = clusterStats.SetText(
 		fmt.Sprintf(
-			"%sEndpoint %s(● %s)%s:%s %s\n%sAccount:%s %s\n%sContainers:%s %d\n%sObjects:%s %s%d   %sTotal Size:%s %s%.1f GB",
+			"%sEndpoint %s(● %s)%s:%s %s\n%sAccount:%s %s\n%sContainers:%s %d\n%sObjects:%s %s%d   %sTotal Size:%s %s%.3f %s",
 			headerColorTag,
 			statusColorTag, endpointStatus, headerColorTag,
-			textColorTag, client.AuthUrl,
+			textColorTag, storageUrl,
 			headerColorTag, textColorTag,
 			client.UserName,
 			headerColorTag, textColorTag,
@@ -97,13 +128,14 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 			headerColorTag, textColorTag,
 			textColorTag, objectCount,
 			headerColorTag, textColorTag,
-			objectSizeTag, accountSizeGB,
+			objectSizeTag, accountSize, accountSizeFormat,
 		),
 	)
 	return clusterStats
 }
 
-func GetContainerList(client *swiftSdk.Connection) *tview.List {
+// Get the container pane using a Swift connection, returing the pane and the currently selected container
+func GetContainerList(client *swiftSdk.Connection) (*tview.List, string) {
 	containerList := tview.NewList().
 		ShowSecondaryText(true).
 		SetHighlightFullLine(true).
@@ -115,37 +147,42 @@ func GetContainerList(client *swiftSdk.Connection) *tview.List {
 		SetBorder(true).
 		SetBorderColor(BORDER_COLOR)
 
-	containerList = UpdateContainerList(client, containerList)
-	return containerList
+	return UpdateContainerList(client, containerList)
 }
 
-func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List) *tview.List {
+// Updates the container pane using a Swift connection, returing the pane and the currently selected container
+func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List) (*tview.List, string) {
 
-	containerFormatString := "%s objects · %.1f GB"
-	containers := []struct{ name, meta string }{
+	containerFormatString := "%d objects · %.3f %s"
+	containers := []struct{ name, meta string } {
 		{"No Containers Found", ""},
 	}
-
+	selectedContainer := NO_CONTAINER_SELECTED
+	
 	containersResult, err := client.ContainersAll(context.Background(), nil)
 	if err != nil {
-		util.LogError(
-			fmt.Sprintf("Failed to get account info from %s as %s: %s",
-				client.AuthUrl,
-				client.UserName,
-				err.Error(),
-			),
-		)
+	  util.LogError(
+	      fmt.Sprintf("Failed to get account info from %s as %s: %s",
+	          client.StorageUrl,
+	          client.UserName,
+	          err.Error(),
+	      ),
+	  )	
 	} else {
 		if len(containersResult) > 0 {
+
+			// set the first container as the selected container
+			selectedContainer = containersResult[0].Name
+			
 			containers = []struct{ name, meta string }{}
 			for _, c := range containersResult {
+				size, sizeFormat := FormatBytes(c.Bytes)
 				containers = append(containers,
 					struct{ name, meta string }{
 						c.Name,
-						fmt.Sprintf(containerFormatString, c.Count, BytesToGB(c.Bytes)),
+						fmt.Sprintf(containerFormatString, c.Count, size, sizeFormat),
 					},
 				)
-				util.LogInfo(fmt.Sprintf("%v\n", c))
 			}
 		}
 	}
@@ -153,10 +190,11 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 	for _, c := range containers {
 		containerList.AddItem(c.name, c.meta, 0, nil)
 	}
-	return containerList
+	return containerList, selectedContainer
 }
 
-func GetObjectTable() *tview.Table {
+// Gets the object table pane using a Swift connection, returing the pane using some currently selected container
+func GetObjectTable(client *swiftSdk.Connection, selectedContainer string) (*tview.Table, string) {
 
 	objectTable := tview.NewTable().
 		SetBorders(false).
@@ -170,12 +208,13 @@ func GetObjectTable() *tview.Table {
 		SetBorder(true).
 		SetBorderColor(BORDER_COLOR)
 
-	objectTable = UpdateObjectTable(nil, objectTable)
-	return objectTable
+	return UpdateObjectTable(client, objectTable, selectedContainer)
 }
 
-func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table) *tview.Table {
+// Updates the object table pane using a Swift connection, returing the pane using some currently selected container
+func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, selectedContainer string) (*tview.Table, string) {
 
+	selectedObject := NO_OBJECT_SELECTED
 	headers := []string{"Object Name", "Size", "Last Modified", "Content-Type"}
 	for col, h := range headers {
 		objectTable.SetCell(0, col, tview.NewTableCell(h).
@@ -185,14 +224,37 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table) *t
 			SetExpansion(1))
 	}
 
-	rows := [][]string{
-		{"README.md", "4.2 KB", "2025-04-12 09:14", "text/markdown"},
-		{"backup-2025-04-01.tar.gz", "1.1 GB", "2025-04-01 02:00", "application/gzip"},
-		{"config.json", "812 B", "2025-03-28 17:45", "application/json"},
-		{"logo.png", "58 KB", "2025-02-10 11:22", "image/png"},
-		{"report-q1.pdf", "2.3 MB", "2025-04-05 13:00", "application/pdf"},
+	if selectedContainer == NO_CONTAINER_SELECTED {
+		return objectTable, selectedObject
+	}
+	objects, err := client.ObjectsAll(context.Background(), selectedContainer, nil)
+	if err != nil {
+		util.LogError(
+		    fmt.Sprintf("Failed to get objects %s as %s: %s",
+		        client.StorageUrl,
+		        client.UserName,
+		        err.Error(),
+		    ),
+		)
+		return objectTable, selectedObject
 	}
 
+	selectedObject = objects[0].Name
+	rows := [][]string{}
+	for _, o := range objects {
+		size, sizeFormat := FormatBytes(o.Bytes)
+		rows = append(rows,
+			// order matches with top row
+			[]string{
+				o.Name, 
+				fmt.Sprintf("%.3f %s", size, sizeFormat),
+				o.LastModified.Format(time.RFC1123), 
+				o.ContentType,
+			},
+		)
+	}
+
+	
 	for r, row := range rows {
 		for col, val := range row {
 			color := TEXT_COLOR
@@ -205,13 +267,14 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table) *t
 		}
 	}
 
-	return objectTable
+	return objectTable, selectedObject
 }
 
-func GetMetadataView() *tview.TextView {
+// Gets the metadata pane using a Swift connection, returing the pane using some currently selected object
+func GetMetadataView(client *swiftSdk.Connection, selectedObject string) *tview.TextView {
 	metadataView := tview.NewTextView().
 		SetDynamicColors(true)
-	metadataView = UpdateMetadataView(nil, metadataView)
+	metadataView = UpdateMetadataView(client, metadataView, selectedObject)
 	metadataView.
 		SetTitle(" Object Metadata ").
 		SetTitleColor(TEXT_HEADER_COLOR).
@@ -220,18 +283,22 @@ func GetMetadataView() *tview.TextView {
 	return metadataView
 }
 
-func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextView) *tview.TextView {
+// Updates the metadata pane using a Swift connection, returing the pane using some currently selected object
+func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextView, selectedObject string) *tview.TextView {
 	metadataView = metadataView.SetText(
-		`[yellow]Name:[white]         backup-2025-04-01.tar.gz
+		`
+		[yellow]Name:[white]         backup-2025-04-01.tar.gz
 		[yellow]Size:[white]         1,181,116,006 bytes
 		[yellow]ETag:[white]         d41d8cd98f00b204e9800998ecf8427e
 		[yellow]Content-Type:[white] application/gzip
 		[yellow]Last-Modified:[white] Tue, 01 Apr 2025 02:00:00 GMT
-		[yellow]X-Object-Meta-Source:[white] cron-job`,
+		[yellow]X-Object-Meta-Source:[white] cron-job
+		`,
 	)
 	return metadataView
 }
 
+// Gets the log view for the TUI
 func GetLogView() *tview.TextView {
 	logView := tview.NewTextView().
 		SetDynamicColors(true).
@@ -245,26 +312,34 @@ func GetLogView() *tview.TextView {
 	return logView
 }
 
+// Gets the status bar for the TUI, displaying what inputs what allowed
 func GetStatusBar() *tview.TextView {
 	statusBar := tview.NewTextView().
 		SetDynamicColors(true)
-	statusBar = UpdateStatusBar(nil, statusBar)
+	statusBar = UpdateStatusBar(statusBar)
 	statusBar.SetBackgroundColor(STATUS_BAR_COLOR)
 	return statusBar
 }
 
-func UpdateStatusBar(client *swiftSdk.Connection, statusBar *tview.TextView) *tview.TextView {
+// Updates the status bar for the TUI
+func UpdateStatusBar(statusBar *tview.TextView) *tview.TextView {
 	statusBar = statusBar.SetText(" [yellow]Tab[white] Switch panel  [yellow]↑↓[white] Navigate [yellow]Q[white] Quit")
 	return statusBar
 }
 
+// Builds a Layout object for the TUI
 func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 
 	l := &Layout{}
 	l.ClusterStats = GetClusterStats(client)
-	l.ContainerList = GetContainerList(client)
-	l.ObjectTable = GetObjectTable()
-	l.MetadataView = GetMetadataView()
+
+	var selectedContainer string = NO_CONTAINER_SELECTED
+	l.ContainerList, selectedContainer = GetContainerList(client)
+
+	var selectedObject string = NO_OBJECT_SELECTED
+	l.ObjectTable, selectedObject = GetObjectTable(client, selectedContainer)
+	
+	l.MetadataView = GetMetadataView(client, selectedObject)
 	l.LogView = GetLogView()
 	l.StatusBar = GetStatusBar()
 
@@ -273,8 +348,8 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 		AddItem(header, 0, 2, false)
 
 	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(l.ObjectTable, 8, 3, false).
-		AddItem(l.MetadataView, 8, 0, false)
+		AddItem(l.ObjectTable, 0, 6, false).
+		AddItem(l.MetadataView, 0, 4, false)
 
 	mainContent := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(l.ContainerList, 30, 0, true).
@@ -297,7 +372,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 	// Update metadata when a container is selected
 	l.ContainerList.SetChangedFunc(func(index int, name, secondary string, shortcut rune) {
 		l.ObjectTable.Clear()
-		UpdateObjectTable(nil, l.ObjectTable)
+		UpdateObjectTable(client, l.ObjectTable, name)
 		appendLog(l.LogView, fmt.Sprintf("[cyan]Container selected:[white] %s", name))
 	})
 
@@ -307,7 +382,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 			cell := l.ObjectTable.GetCell(row, 0)
 			if cell != nil {
 				appendLog(l.LogView, fmt.Sprintf("[cyan]Object focused:[white] %s", cell.Text))
-				l.MetadataView = UpdateMetadataView(nil, l.MetadataView)
+				l.MetadataView = UpdateMetadataView(client, l.MetadataView, cell.Text)
 			}
 		}
 	})
@@ -321,6 +396,7 @@ func appendLog(v *tview.TextView, msg string) {
 	v.ScrollToEnd()
 }
 
+// Sets up input handling for the TUI
 func SetupInputHandling(app *tview.Application, l *Layout) *tview.Application {
 
 	panels := []tview.Primitive{l.ContainerList, l.ObjectTable, l.MetadataView, l.LogView}
