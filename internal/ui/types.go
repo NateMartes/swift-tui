@@ -19,18 +19,18 @@ var BORDER_COLOR tcell.Color = tcell.ColorWhite
 type Layout struct {
 	App           *tview.Application
 	ContainerList struct {
-		Main *tview.List 
+		Main              *tview.List
 		SelectedContainer string
 	}
 	ObjectTable struct {
-		Main *tview.Table 
+		Main           *tview.Table
 		SelectedObject string
 	}
-	MetadataView  *tview.TextView
-	ClusterStats  *tview.TextView
-	LogView       *tview.TextView
-	StatusBar     *tview.TextView
-	Pages         *tview.Pages
+	MetadataView *tview.TextView
+	ClusterStats *tview.TextView
+	LogView      *tview.TextView
+	StatusBar    *tview.TextView
+	Pages        *tview.Pages
 }
 
 var NO_CONTAINER_SELECTED string = ""

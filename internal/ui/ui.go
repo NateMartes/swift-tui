@@ -7,9 +7,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 	swiftSdk "github.com/ncw/swift/v2"
 	"github.com/rivo/tview"
-	"time"
-	"strings"
 	"sort"
+	"strings"
+	"time"
 )
 
 // GetMainTUI builds and returns the fully wired TUI application
@@ -67,6 +67,7 @@ func ObjectTypeString(t swiftSdk.ObjectType) string {
 		return "Regular"
 	}
 }
+
 // Gets the header object of the TUI
 func GetHeader() *tview.TextView {
 	header := tview.NewTextView().
@@ -400,7 +401,7 @@ func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextVie
 	sb.WriteString(fmt.Sprintf("%s  Last-Modified:          %s %s\n", header, reset+text, metadata.LastModified.Format(time.RFC1123)+reset))
 	sb.WriteString(fmt.Sprintf("%s  Last-Modified (Server): %s %s\n", header, reset+text, serverModifiedTime.Format(time.RFC1123)))
 	sb.WriteString(fmt.Sprintf("%s  Object-Type:            %s %s\n", header, reset+text, ObjectTypeString(metadata.ObjectType)+reset))
-	
+
 	// Append any X-Object-Meta-* headers from the response
 	metaKeys := make([]string, 0)
 	for key := range info {
@@ -414,7 +415,7 @@ func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextVie
 		sb.WriteString(fmt.Sprintf("\n%s-- Object Metadata --%s\n", header, reset))
 		for _, key := range metaKeys {
 			displayKey := strings.TrimPrefix(key, "X-Object-Meta-")
-			sb.WriteString(fmt.Sprintf(  "%s%-13s%s %s\n", header, displayKey+":", reset+text, info[key]+reset))
+			sb.WriteString(fmt.Sprintf("%s%-13s%s %s\n", header, displayKey+":", reset+text, info[key]+reset))
 		}
 	}
 
@@ -465,10 +466,16 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 	l := &Layout{}
 	l.ClusterStats = GetClusterStats(client)
 
-	l.ContainerList = struct{Main *tview.List; SelectedContainer string}{}
+	l.ContainerList = struct {
+		Main              *tview.List
+		SelectedContainer string
+	}{}
 	l.ContainerList.Main, l.ContainerList.SelectedContainer = GetContainerList(client)
 
-	l.ObjectTable = struct{Main *tview.Table; SelectedObject string}{}
+	l.ObjectTable = struct {
+		Main           *tview.Table
+		SelectedObject string
+	}{}
 	l.ObjectTable.Main, l.ObjectTable.SelectedObject = GetObjectTable(client, l.ContainerList.SelectedContainer)
 
 	l.MetadataView = GetMetadataView(client, l.ContainerList.SelectedContainer, l.ObjectTable.SelectedObject)
