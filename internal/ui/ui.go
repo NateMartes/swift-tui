@@ -105,7 +105,7 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 				client.StorageUrl,
 				client.UserName,
 				accountSize,
-			),	
+			),
 		)
 		connected = true
 		endpointStatus = "Connected"
@@ -184,14 +184,14 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 					client.StorageUrl,
 					client.UserName,
 					len(containersResult),
-				),	
+				),
 			)
-			
+
 			// set the first container as the selected container
 			selectedContainer = containersResult[0].Name
 
 			util.LogDebug(fmt.Sprintf("Inital container is %s", selectedContainer))
-			
+
 			containers = []struct{ name, meta string }{}
 			for _, c := range containersResult {
 				size, sizeFormat := FormatBytes(c.Bytes)
@@ -208,7 +208,7 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 					"Found no containers from %s as %s",
 					client.StorageUrl,
 					client.UserName,
-				),	
+				),
 			)
 		}
 	}
@@ -257,7 +257,7 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 		util.LogDebug("Stopping object gathering, no container selected")
 		return objectTable, selectedObject
 	}
-	
+
 	objects, err := client.ObjectsAll(context.Background(), selectedContainer, nil)
 	if err != nil {
 		util.LogError(
@@ -277,13 +277,13 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 				selectedContainer,
 				client.StorageUrl,
 				client.UserName,
-			),	
+			),
 		)
 		return objectTable, selectedObject
 	}
 
 	objectTable.SetSelectable(true, false)
-	
+
 	selectedObject = objects[0].Name
 	rows := [][]string{}
 	for _, o := range objects {

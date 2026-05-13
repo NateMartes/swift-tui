@@ -3,12 +3,12 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/NateMartes/swift-tui/pkg/errors"
 	"io"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
-	"github.com/NateMartes/swift-tui/pkg/errors"
 )
 
 // cliHandler writes out to a specifc stream, holding a mutex to stop
@@ -35,8 +35,8 @@ func (h *cliHandler) Handle(_ context.Context, r slog.Record) error {
 
 // logStreamHandler is a type of stream logs can write to
 type logStreamHandler struct {
-	errHandler slog.Handler
-	outHandler slog.Handler
+	errHandler   slog.Handler
+	outHandler   slog.Handler
 	debugHandler slog.Handler
 }
 
@@ -56,16 +56,16 @@ func (h *logStreamHandler) Handle(ctx context.Context, r slog.Record) error {
 
 func (h *logStreamHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &logStreamHandler{
-		errHandler: h.errHandler.WithAttrs(attrs),
-		outHandler: h.outHandler.WithAttrs(attrs),
+		errHandler:   h.errHandler.WithAttrs(attrs),
+		outHandler:   h.outHandler.WithAttrs(attrs),
 		debugHandler: h.debugHandler.WithAttrs(attrs),
 	}
 }
 
 func (h *logStreamHandler) WithGroup(name string) slog.Handler {
 	return &logStreamHandler{
-		errHandler: h.errHandler.WithGroup(name),
-		outHandler: h.outHandler.WithGroup(name),
+		errHandler:   h.errHandler.WithGroup(name),
+		outHandler:   h.outHandler.WithGroup(name),
 		debugHandler: h.debugHandler.WithGroup(name),
 	}
 }
@@ -79,7 +79,7 @@ var debugFile *os.File = nil
 func SetupLogger() {
 
 	errHandler = &cliHandler{out: os.Stderr, mu: &sync.Mutex{}, minLevel: slog.LevelWarn}
-	outHandler = &cliHandler{out: os.Stdout, mu: &sync.Mutex{}, minLevel: slog.LevelInfo}	
+	outHandler = &cliHandler{out: os.Stdout, mu: &sync.Mutex{}, minLevel: slog.LevelInfo}
 	logger := slog.New(&logStreamHandler{
 		errHandler: errHandler,
 		outHandler: outHandler,
@@ -118,19 +118,19 @@ func LogFatal(message string, exitCode int) {
 // file is either named from the user or a temp file in the format of
 // swift-tui-<creation time>.log
 func GetDebugFile() *os.File {
-	
+
 	var err error
-	
+
 	filename, err := DebugFileVal()
 	if DebugFileSupplied() && err != nil {
 		LogFatal(err.Error(), errors.IO_ERROR)
 	}
-	
+
 	if !DebugFileSupplied() {
 		now := time.Now().Format(time.RFC3339)
-		filename = fmt.Sprintf("swift-tui-%s.log", now) 
+		filename = fmt.Sprintf("swift-tui-%s.log", now)
 	}
-	
+
 	debugFile, err = os.Create(filename)
 	if err != nil {
 		LogFatal(fmt.Sprintf("Failed to make debug file: %s", err.Error()), errors.IO_ERROR)
@@ -143,19 +143,19 @@ func GetDebugFile() *os.File {
 func SetDebugLogging(val bool) {
 
 	if val {
-		
-		if debugFile == nil {		
+
+		if debugFile == nil {
 			debugFile = GetDebugFile()
 		}
-		
+
 		debugHandler := &cliHandler{out: debugFile, mu: &sync.Mutex{}, minLevel: slog.LevelDebug}
 		logger := slog.New(&logStreamHandler{
-			errHandler: errHandler,
-			outHandler: outHandler,
+			errHandler:   errHandler,
+			outHandler:   outHandler,
 			debugHandler: debugHandler,
 		})
 		slog.SetDefault(logger)
-		
+
 	} else {
 		logger := slog.New(&logStreamHandler{
 			errHandler: errHandler,
@@ -163,7 +163,7 @@ func SetDebugLogging(val bool) {
 		})
 		debugFile.Close()
 		debugFile = nil
-		slog.SetDefault(logger)	
+		slog.SetDefault(logger)
 	}
 }
 
