@@ -1,7 +1,6 @@
 package util
 
 import (
-	"github.com/NateMartes/swift-tui/pkg/errors"
 	"context"
 	"fmt"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"github.com/NateMartes/swift-tui/pkg/errors"
 )
 
 // cliHandler writes out to a specifc stream, holding a mutex to stop
@@ -114,18 +114,38 @@ func LogFatal(message string, exitCode int) {
 	os.Exit(exitCode)
 }
 
+// Gets the debug log file, using command line arguments as needed
+// file is either named from the user or a temp file in the format of
+// swift-tui-<creation time>.log
+func GetDebugFile() *os.File {
+	
+	var err error
+	
+	filename, err := DebugFileVal()
+	if DebugFileSupplied() && err != nil {
+		LogFatal(err.Error(), errors.IO_ERROR)
+	}
+	
+	if !DebugFileSupplied() {
+		now := time.Now().Format(time.RFC3339)
+		filename = fmt.Sprintf("swift-tui-%s.log", now) 
+	}
+	
+	debugFile, err = os.Create(filename)
+	if err != nil {
+		LogFatal(fmt.Sprintf("Failed to make debug file: %s", err.Error()), errors.IO_ERROR)
+	}
+
+	return debugFile
+}
+
 // Set log level to debug, making a debug file on true
 func SetDebugLogging(val bool) {
 
 	if val {
 		
-		now := time.Now().Format(time.RFC3339)
-		if debugFile == nil {
-			var err error
-			debugFile, err = os.Create(fmt.Sprintf("swift-tui-%s.log", now))
-			if err != nil {
-				LogFatal(fmt.Sprintf("Failed to make debug file: %s", err.Error()), errors.IO_ERROR)
-			}
+		if debugFile == nil {		
+			debugFile = GetDebugFile()
 		}
 		
 		debugHandler := &cliHandler{out: debugFile, mu: &sync.Mutex{}, minLevel: slog.LevelDebug}
