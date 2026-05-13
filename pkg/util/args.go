@@ -32,6 +32,7 @@ func ParseArgs() {
 
 	// Args
 	pflag.BoolP("debug", "d", false, "Turn on debug messaging")
+	pflag.StringP("debug-file", "f", "", "A filename to place debug logging into if debug logging is enabled (default is a random filename in the current directory)")
 	pflag.BoolP("help", "h", false, "Display help message")
 	pflag.StringP("clouds-file-path", "c", "", "Use an OpenStackClient (aka OSC) clouds.yaml file to login to OpenStack Swift")
 	pflag.StringP("cloud-name", "n", "", "Cloud to use in the clouds.yaml file to connect to OpenStack Swift")
@@ -52,6 +53,12 @@ func HelpVal() (bool, error) {
 // Get the value of the debug argument
 func DebugVal() (bool, error) {
 	v, err := pflag.CommandLine.GetBool("debug")
+	return v, err
+}
+
+// Get the value of the debug-file argument
+func DebugFileVal() (string, error) {
+	v, err := pflag.CommandLine.GetString("debug-file")
 	return v, err
 }
 
@@ -110,6 +117,11 @@ func CloudsFileSupplied() bool {
 // Check if the debug argument was supplied
 func DebugSupplied() bool {
 	return pflag.CommandLine.Changed("debug")
+}
+
+// Check if the debug-file argument was supplied
+func DebugFileSupplied() bool {
+	return pflag.CommandLine.Changed("debug-file")
 }
 
 // Check if the help argument was supplied

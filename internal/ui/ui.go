@@ -99,6 +99,14 @@ func UpdateClusterStats(client *swiftSdk.Connection, clusterStats *tview.TextVie
 			),
 		)
 	} else {
+		util.LogDebug(
+			fmt.Sprintf(
+				"Successfully retrived account information from %s as %s. Account Size (Bytes): %.3f",
+				client.StorageUrl,
+				client.UserName,
+				accountSize,
+			),	
+		)
 		connected = true
 		endpointStatus = "Connected"
 		storageUrl = client.StorageUrl
@@ -170,10 +178,20 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 		)
 	} else {
 		if len(containersResult) > 0 {
-
+			util.LogDebug(
+				fmt.Sprintf(
+					"Successfully retrived containers from %s as %s. Container Count: %d",
+					client.StorageUrl,
+					client.UserName,
+					len(containersResult),
+				),	
+			)
+			
 			// set the first container as the selected container
 			selectedContainer = containersResult[0].Name
 
+			util.LogDebug(fmt.Sprintf("Inital container is %s", selectedContainer))
+			
 			containers = []struct{ name, meta string }{}
 			for _, c := range containersResult {
 				size, sizeFormat := FormatBytes(c.Bytes)
@@ -184,6 +202,14 @@ func UpdateContainerList(client *swiftSdk.Connection, containerList *tview.List)
 					},
 				)
 			}
+		} else {
+			util.LogDebug(
+				fmt.Sprintf(
+					"Found no containers from %s as %s",
+					client.StorageUrl,
+					client.UserName,
+				),	
+			)
 		}
 	}
 
@@ -214,6 +240,9 @@ func GetObjectTable(client *swiftSdk.Connection, selectedContainer string) (*tvi
 // Updates the object table pane using a Swift connection, returing the pane using some currently selected container
 func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, selectedContainer string) (*tview.Table, string) {
 
+	// stop tview from crashing on an empty selectable table
+	objectTable.SetSelectable(false, false)
+
 	selectedObject := NO_OBJECT_SELECTED
 	headers := []string{"Object Name", "Size", "Last Modified", "Content-Type"}
 	for col, h := range headers {
@@ -225,8 +254,10 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 	}
 
 	if selectedContainer == NO_CONTAINER_SELECTED {
+		util.LogDebug("Stopping object gathering, no container selected")
 		return objectTable, selectedObject
 	}
+	
 	objects, err := client.ObjectsAll(context.Background(), selectedContainer, nil)
 	if err != nil {
 		util.LogError(
@@ -239,6 +270,20 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 		return objectTable, selectedObject
 	}
 
+	if len(objects) <= 0 {
+		util.LogDebug(
+			fmt.Sprintf(
+				"Found no objects in %s from %s as %s",
+				selectedContainer,
+				client.StorageUrl,
+				client.UserName,
+			),	
+		)
+		return objectTable, selectedObject
+	}
+
+	objectTable.SetSelectable(true, false)
+	
 	selectedObject = objects[0].Name
 	rows := [][]string{}
 	for _, o := range objects {
@@ -370,17 +415,19 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 
 	// Update metadata when a container is selected
 	l.ContainerList.SetChangedFunc(func(index int, name, secondary string, shortcut rune) {
+		util.LogDebug(fmt.Sprintf("Triggered event on container selection on %s", name))
 		l.ObjectTable.Clear()
 		UpdateObjectTable(client, l.ObjectTable, name)
-		appendLog(l.LogView, fmt.Sprintf("[cyan]Container selected:[white] %s", name))
+		appendLog(l.LogView, fmt.Sprintf("%sContainer selected:%s %s", ColorToTag(TEXT_HEADER_COLOR), ColorToTag(TEXT_COLOR), name))
 	})
 
 	// Update metadata when an object row is selected
 	l.ObjectTable.SetSelectionChangedFunc(func(row, col int) {
-		if row > 0 { // skip header row
+		if row > 0 {
 			cell := l.ObjectTable.GetCell(row, 0)
+			util.LogDebug(fmt.Sprintf("Triggered event on object selection on %s", cell.Text))
 			if cell != nil {
-				appendLog(l.LogView, fmt.Sprintf("[cyan]Object focused:[white] %s", cell.Text))
+				appendLog(l.LogView, fmt.Sprintf("%sObject focused:%s %s", ColorToTag(TEXT_HEADER_COLOR), ColorToTag(TEXT_COLOR), cell.Text))
 				l.MetadataView = UpdateMetadataView(client, l.MetadataView, cell.Text)
 			}
 		}
@@ -391,6 +438,7 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 }
 
 func appendLog(v *tview.TextView, msg string) {
+	util.LogDebug(fmt.Sprintf("Adding to Log View: %s", msg))
 	fmt.Fprintf(v, "%s\n", msg)
 	v.ScrollToEnd()
 }

@@ -5,4 +5,5 @@ var ARGUMENT_ERROR int = 1
 var AUTH_ERROR int = 2
 var TUI_ERROR int = 3
 var INPUT_READ_ERROR = 4
+var IO_ERROR = 5
 var PARSE_ERROR = 6

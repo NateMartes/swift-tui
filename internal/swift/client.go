@@ -139,7 +139,7 @@ func GetSwiftClientFromClouds(
 
 	util.LogDebug(
 		fmt.Sprintf(
-			"Setting auth options for OpenStack Swift with Keystone to:\n"+
+			"Setting auth options for OpenStack Swift with clouds.yaml file to:\n"+
 				"	URL: %s\n"+
 				"	Username: %s\n"+
 				"	Tenant: %s\n"+

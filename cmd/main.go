@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 	swift "github.com/NateMartes/swift-tui/internal/swift"
 	"github.com/NateMartes/swift-tui/internal/ui"
 	"github.com/NateMartes/swift-tui/pkg/errors"
 	"github.com/NateMartes/swift-tui/pkg/util"
 	swiftSdk "github.com/ncw/swift/v2"
-	"os"
 )
 
 // Gets a Swift connection depending on the arguments provided
@@ -62,4 +62,6 @@ func main() {
 			errors.TUI_ERROR,
 		)
 	}
+
+	util.CleanLogger()
 }
