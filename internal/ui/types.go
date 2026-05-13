@@ -18,8 +18,14 @@ var BORDER_COLOR tcell.Color = tcell.ColorWhite
 // Layout holds all TUI panels for reference
 type Layout struct {
 	App           *tview.Application
-	ContainerList *tview.List
-	ObjectTable   *tview.Table
+	ContainerList struct {
+		Main *tview.List 
+		SelectedContainer string
+	}
+	ObjectTable struct {
+		Main *tview.Table 
+		SelectedObject string
+	}
 	MetadataView  *tview.TextView
 	ClusterStats  *tview.TextView
 	LogView       *tview.TextView

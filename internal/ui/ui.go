@@ -8,6 +8,8 @@ import (
 	swiftSdk "github.com/ncw/swift/v2"
 	"github.com/rivo/tview"
 	"time"
+	"strings"
+	"sort"
 )
 
 // GetMainTUI builds and returns the fully wired TUI application
@@ -54,6 +56,17 @@ func FormatBytes(a int64) (float64, string) {
 	}
 }
 
+// ObjectTypeString converts an ObjectType to a human-readable string
+func ObjectTypeString(t swiftSdk.ObjectType) string {
+	switch t {
+	case swiftSdk.StaticLargeObjectType:
+		return "Static Large Object"
+	case swiftSdk.DynamicLargeObjectType:
+		return "Dynamic Large Object"
+	default:
+		return "Regular"
+	}
+}
 // Gets the header object of the TUI
 func GetHeader() *tview.TextView {
 	header := tview.NewTextView().
@@ -315,10 +328,10 @@ func UpdateObjectTable(client *swiftSdk.Connection, objectTable *tview.Table, se
 }
 
 // Gets the metadata pane using a Swift connection, returing the pane using some currently selected object
-func GetMetadataView(client *swiftSdk.Connection, selectedObject string) *tview.TextView {
+func GetMetadataView(client *swiftSdk.Connection, selectedContainer string, selectedObject string) *tview.TextView {
 	metadataView := tview.NewTextView().
 		SetDynamicColors(true)
-	metadataView = UpdateMetadataView(client, metadataView, selectedObject)
+	metadataView = UpdateMetadataView(client, metadataView, selectedContainer, selectedObject)
 	metadataView.
 		SetTitle(" Object Metadata ").
 		SetTitleColor(TEXT_HEADER_COLOR).
@@ -327,18 +340,85 @@ func GetMetadataView(client *swiftSdk.Connection, selectedObject string) *tview.
 	return metadataView
 }
 
-// Updates the metadata pane using a Swift connection, returing the pane using some currently selected object
-func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextView, selectedObject string) *tview.TextView {
-	metadataView = metadataView.SetText(
-		`
-		[yellow]Name:[white]         backup-2025-04-01.tar.gz
-		[yellow]Size:[white]         1,181,116,006 bytes
-		[yellow]ETag:[white]         d41d8cd98f00b204e9800998ecf8427e
-		[yellow]Content-Type:[white] application/gzip
-		[yellow]Last-Modified:[white] Tue, 01 Apr 2025 02:00:00 GMT
-		[yellow]X-Object-Meta-Source:[white] cron-job
-		`,
+// Updates the metadata pane using a Swift connection, returning the pane using some currently selected object
+func UpdateMetadataView(client *swiftSdk.Connection, metadataView *tview.TextView, selectedContainer string, selectedObject string) *tview.TextView {
+	metadataView = metadataView.SetText(``)
+	if selectedObject == NO_OBJECT_SELECTED || selectedContainer == NO_CONTAINER_SELECTED {
+		return metadataView
+	}
+
+	metadata, info, err := client.Object(context.Background(), selectedContainer, selectedObject)
+	if err != nil {
+		util.LogError(
+			fmt.Sprintf("Failed to get object info about %s from %s from %s as %s: %s",
+				selectedObject,
+				selectedContainer,
+				client.StorageUrl,
+				client.UserName,
+				err.Error(),
+			),
+		)
+		return metadataView
+	}
+
+	util.LogDebug(
+		fmt.Sprintf(
+			"Successfully retrieved object information about object %s from container %s",
+			selectedObject,
+			selectedContainer,
+		),
 	)
+
+	header := ColorToTag(TEXT_HEADER_COLOR)
+	text := ColorToTag(TEXT_COLOR)
+	accent := ColorToTag(TEXT_ACCENT_COLOR)
+	reset := "[-]"
+
+	size, unit := FormatBytes(metadata.Bytes)
+
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s  Name:                   %s %s\n", header, reset+text, metadata.Name+reset))
+	sb.WriteString(fmt.Sprintf("%s  Size:                   %s %s%.3f %s%s (%d bytes)%s\n",
+		header, reset,
+		accent, size, unit, reset+text,
+		metadata.Bytes, reset,
+	))
+
+	serverModifiedTime, err := time.Parse(time.RFC1123, metadata.ServerLastModified)
+	if err != nil {
+		util.LogError(
+			fmt.Sprintf(
+				"Failed to convert last modified server time string %s to time struct using RFC1123, %s",
+				metadata.ServerLastModified,
+				err.Error(),
+			),
+		)
+	}
+	sb.WriteString(fmt.Sprintf("%s  ETag (MD5 Hash):        %s %s\n", header, reset+text, metadata.Hash+reset))
+	sb.WriteString(fmt.Sprintf("%s  Content-Type:           %s %s\n", header, reset+text, metadata.ContentType+reset))
+	sb.WriteString(fmt.Sprintf("%s  Last-Modified:          %s %s\n", header, reset+text, metadata.LastModified.Format(time.RFC1123)+reset))
+	sb.WriteString(fmt.Sprintf("%s  Last-Modified (Server): %s %s\n", header, reset+text, serverModifiedTime.Format(time.RFC1123)))
+	sb.WriteString(fmt.Sprintf("%s  Object-Type:            %s %s\n", header, reset+text, ObjectTypeString(metadata.ObjectType)+reset))
+	
+	// Append any X-Object-Meta-* headers from the response
+	metaKeys := make([]string, 0)
+	for key := range info {
+		if strings.HasPrefix(key, "X-Object-Meta-") {
+			metaKeys = append(metaKeys, key)
+		}
+	}
+	sort.Strings(metaKeys)
+
+	if len(metaKeys) > 0 {
+		sb.WriteString(fmt.Sprintf("\n%s-- Object Metadata --%s\n", header, reset))
+		for _, key := range metaKeys {
+			displayKey := strings.TrimPrefix(key, "X-Object-Meta-")
+			sb.WriteString(fmt.Sprintf(  "%s%-13s%s %s\n", header, displayKey+":", reset+text, info[key]+reset))
+		}
+	}
+
+	metadataView = metadataView.SetText(sb.String())
 	return metadataView
 }
 
@@ -367,7 +447,15 @@ func GetStatusBar() *tview.TextView {
 
 // Updates the status bar for the TUI
 func UpdateStatusBar(statusBar *tview.TextView) *tview.TextView {
-	statusBar = statusBar.SetText(" [yellow]Tab[white] Switch panel  [yellow]↑↓[white] Navigate [yellow]Q[white] Quit")
+	headerTag := ColorToTag(TEXT_HEADER_COLOR)
+	textTag := ColorToTag(TEXT_COLOR)
+	statusBarText := fmt.Sprintf(
+		"%sTab%s Switch panel  %s↑↓%s Navigate %sQ%s Quit",
+		headerTag, textTag,
+		headerTag, textTag,
+		headerTag, textTag,
+	)
+	statusBar = statusBar.SetText(statusBarText)
 	return statusBar
 }
 
@@ -377,13 +465,13 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 	l := &Layout{}
 	l.ClusterStats = GetClusterStats(client)
 
-	var selectedContainer string = NO_CONTAINER_SELECTED
-	l.ContainerList, selectedContainer = GetContainerList(client)
+	l.ContainerList = struct{Main *tview.List; SelectedContainer string}{}
+	l.ContainerList.Main, l.ContainerList.SelectedContainer = GetContainerList(client)
 
-	var selectedObject string = NO_OBJECT_SELECTED
-	l.ObjectTable, selectedObject = GetObjectTable(client, selectedContainer)
+	l.ObjectTable = struct{Main *tview.Table; SelectedObject string}{}
+	l.ObjectTable.Main, l.ObjectTable.SelectedObject = GetObjectTable(client, l.ContainerList.SelectedContainer)
 
-	l.MetadataView = GetMetadataView(client, selectedObject)
+	l.MetadataView = GetMetadataView(client, l.ContainerList.SelectedContainer, l.ObjectTable.SelectedObject)
 	l.LogView = GetLogView()
 	l.StatusBar = GetStatusBar()
 
@@ -392,11 +480,11 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 		AddItem(header, 0, 2, false)
 
 	rightPanel := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(l.ObjectTable, 0, 6, false).
+		AddItem(l.ObjectTable.Main, 0, 6, false).
 		AddItem(l.MetadataView, 0, 4, false)
 
 	mainContent := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(l.ContainerList, 30, 0, true).
+		AddItem(l.ContainerList.Main, 30, 0, true).
 		AddItem(rightPanel, 0, 1, false)
 
 	root := tview.NewFlex().SetDirection(tview.FlexRow).
@@ -413,22 +501,25 @@ func BuildLayout(client *swiftSdk.Connection, app *tview.Application) *Layout {
 
 	app = SetupInputHandling(app, l)
 
-	// Update metadata when a container is selected
-	l.ContainerList.SetChangedFunc(func(index int, name, secondary string, shortcut rune) {
+	// Update object table and metadata when a container is selected
+	l.ContainerList.Main.SetChangedFunc(func(index int, name, secondary string, shortcut rune) {
 		util.LogDebug(fmt.Sprintf("Triggered event on container selection on %s", name))
-		l.ObjectTable.Clear()
-		UpdateObjectTable(client, l.ObjectTable, name)
+		l.ContainerList.SelectedContainer = name
+		l.ObjectTable.Main.Clear()
+		_, l.ObjectTable.SelectedObject = UpdateObjectTable(client, l.ObjectTable.Main, l.ContainerList.SelectedContainer)
 		appendLog(l.LogView, fmt.Sprintf("%sContainer selected:%s %s", ColorToTag(TEXT_HEADER_COLOR), ColorToTag(TEXT_COLOR), name))
+		UpdateMetadataView(client, l.MetadataView, l.ContainerList.SelectedContainer, l.ObjectTable.SelectedObject)
 	})
 
 	// Update metadata when an object row is selected
-	l.ObjectTable.SetSelectionChangedFunc(func(row, col int) {
+	l.ObjectTable.Main.SetSelectionChangedFunc(func(row, col int) {
 		if row > 0 {
-			cell := l.ObjectTable.GetCell(row, 0)
+			cell := l.ObjectTable.Main.GetCell(row, 0)
 			util.LogDebug(fmt.Sprintf("Triggered event on object selection on %s", cell.Text))
 			if cell != nil {
 				appendLog(l.LogView, fmt.Sprintf("%sObject focused:%s %s", ColorToTag(TEXT_HEADER_COLOR), ColorToTag(TEXT_COLOR), cell.Text))
-				l.MetadataView = UpdateMetadataView(client, l.MetadataView, cell.Text)
+				l.ObjectTable.SelectedObject = cell.Text
+				UpdateMetadataView(client, l.MetadataView, l.ContainerList.SelectedContainer, l.ObjectTable.SelectedObject)
 			}
 		}
 	})
@@ -446,7 +537,7 @@ func appendLog(v *tview.TextView, msg string) {
 // Sets up input handling for the TUI
 func SetupInputHandling(app *tview.Application, l *Layout) *tview.Application {
 
-	panels := []tview.Primitive{l.ContainerList, l.ObjectTable, l.MetadataView, l.LogView}
+	panels := []tview.Primitive{l.ContainerList.Main, l.ObjectTable.Main, l.MetadataView, l.LogView}
 	currentPanel := 0
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

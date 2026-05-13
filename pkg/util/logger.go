@@ -41,14 +41,14 @@ type logStreamHandler struct {
 }
 
 func (h *logStreamHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.errHandler.Enabled(ctx, level) || h.outHandler.Enabled(ctx, level) || h.debugHandler.Enabled(ctx, level)
+	return h.errHandler.Enabled(ctx, level) || h.outHandler.Enabled(ctx, level) || (h.debugHandler != nil && h.debugHandler.Enabled(ctx, level))
 }
 
 func (h *logStreamHandler) Handle(ctx context.Context, r slog.Record) error {
 	if r.Level >= slog.LevelWarn {
 		return h.errHandler.Handle(ctx, r)
 	}
-	if r.Level == slog.LevelDebug {
+	if r.Level == slog.LevelDebug && h.debugHandler != nil {
 		return h.debugHandler.Handle(ctx, r)
 	}
 	return h.outHandler.Handle(ctx, r)
@@ -161,8 +161,10 @@ func SetDebugLogging(val bool) {
 			errHandler: errHandler,
 			outHandler: outHandler,
 		})
-		debugFile.Close()
-		debugFile = nil
+		if debugFile != nil {
+			debugFile.Close()
+			debugFile = nil
+		}
 		slog.SetDefault(logger)
 	}
 }
